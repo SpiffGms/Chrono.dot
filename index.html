@@ -1,23 +1,227 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Chrono Dot</title>
-    <style>
-        body {
-            background: black;
-            color: cyan;
-            text-align: center;
-            font-family: Arial;
-            margin-top: 100px;
-        }
+<meta charset="UTF-8">
+<title>Chrono Dot</title>
 
-        h1 {
-            text-shadow: 0 0 15px cyan;
-        }
-    </style>
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:black;
+}
+
+canvas{
+    display:block;
+    margin:auto;
+    background:#050505;
+}
+
+#ui{
+    position:absolute;
+    top:10px;
+    left:10px;
+    color:cyan;
+    font-family:Arial;
+    font-size:20px;
+}
+</style>
+
 </head>
 <body>
-    <h1>🎮 Chrono Dot</h1>
-    <p>Your game website is working!</p>
+
+<div id="ui">Chrono Dot V1</div>
+
+<canvas id="game" width="1000" height="600"></canvas>
+
+<script>
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const keys = {};
+
+document.addEventListener("keydown", e=>{
+    keys[e.key]=true;
+});
+
+document.addEventListener("keyup", e=>{
+    keys[e.key]=false;
+});
+
+const player = {
+    x:50,
+    y:450,
+    w:20,
+    h:20,
+    vx:0,
+    vy:0,
+    speed:5,
+    jumpPower:12,
+    grounded:false,
+    spawnX:50,
+    spawnY:450
+};
+
+const platforms = [
+    {x:0,y:550,w:1000,h:50},
+
+    {x:200,y:470,w:120,h:20},
+    {x:380,y:400,w:120,h:20},
+    {x:560,y:330,w:120,h:20},
+    {x:760,y:250,w:120,h:20}
+];
+
+const spikes = [
+    {x:330,y:530,w:80,h:20},
+    {x:500,y:530,w:80,h:20},
+    {x:680,y:530,w:80,h:20}
+];
+
+const exit = {
+    x:900,
+    y:490,
+    w:40,
+    h:60
+};
+
+function collide(a,b){
+    return (
+        a.x < b.x+b.w &&
+        a.x+a.w > b.x &&
+        a.y < b.y+b.h &&
+        a.y+a.h > b.y
+    );
+}
+
+function respawn(){
+    player.x=player.spawnX;
+    player.y=player.spawnY;
+    player.vx=0;
+    player.vy=0;
+}
+
+let gameWon=false;
+
+function update(){
+
+    if(gameWon) return;
+
+    player.vx=0;
+
+    if(keys["ArrowLeft"] || keys["a"])
+        player.vx=-player.speed;
+
+    if(keys["ArrowRight"] || keys["d"])
+        player.vx=player.speed;
+
+    player.x += player.vx;
+
+    player.vy += 0.6;
+    player.y += player.vy;
+
+    player.grounded=false;
+
+    for(let p of platforms){
+
+        if(
+            player.x+player.w > p.x &&
+            player.x < p.x+p.w &&
+            player.y+player.h > p.y &&
+            player.y+player.h < p.y+20 &&
+            player.vy >=0
+        ){
+            player.y=p.y-player.h;
+            player.vy=0;
+            player.grounded=true;
+        }
+    }
+
+    if(
+        (keys[" "] || keys["ArrowUp"] || keys["w"])
+        && player.grounded
+    ){
+        player.vy=-player.jumpPower;
+    }
+
+    for(let s of spikes){
+        if(collide(player,s))
+            respawn();
+    }
+
+    if(player.y > 700)
+        respawn();
+
+    if(collide(player,exit))
+        gameWon=true;
+}
+
+function drawGlowRect(x,y,w,h,color){
+
+    ctx.fillStyle=color;
+    ctx.shadowColor=color;
+    ctx.shadowBlur=20;
+    ctx.fillRect(x,y,w,h);
+    ctx.shadowBlur=0;
+
+}
+
+function draw(){
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    for(let p of platforms){
+        drawGlowRect(
+            p.x,p.y,p.w,p.h,
+            "#00ffff"
+        );
+    }
+
+    for(let s of spikes){
+        drawGlowRect(
+            s.x,s.y,s.w,s.h,
+            "#ff0055"
+        );
+    }
+
+    drawGlowRect(
+        exit.x,
+        exit.y,
+        exit.w,
+        exit.h,
+        "#00ff66"
+    );
+
+    drawGlowRect(
+        player.x,
+        player.y,
+        player.w,
+        player.h,
+        "#ffffff"
+    );
+
+    if(gameWon){
+
+        ctx.fillStyle="white";
+        ctx.font="60px Arial";
+        ctx.textAlign="center";
+        ctx.fillText(
+            "LEVEL COMPLETE!",
+            500,
+            180
+        );
+    }
+}
+
+function gameLoop(){
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+
+</script>
+
 </body>
 </html>
